@@ -1,4 +1,8 @@
 RSpec.describe 'Plugins / :auto_wrap' do
+  before do
+    pending 'this needs to be refactored into specs for SQL::Wrap'
+  end
+
   with_adapters do
     include_context 'users and tasks'
 
