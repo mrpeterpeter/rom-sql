@@ -14,9 +14,13 @@ module ROM
           Type(name) do
             read = SQL::Types.Constructor(Values::Range) do |value|
               pg_range =
-                if value.is_a?(String)
-                  Sequel::Postgres::PGRange::Parser.new(name, subtype).(value)
-                elsif value.is_a?(Sequel::Postgres::PGRange)
+                if value.is_a?(Sequel::Postgres::PGRange)
+                  value
+                elsif value.respond_to?(:to_s)
+                  Sequel::Postgres::PGRange::Parser
+                    .new(name, subtype)
+                    .call(value.to_s)
+                else
                   value
                 end
 
