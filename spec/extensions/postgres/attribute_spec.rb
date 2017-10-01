@@ -232,6 +232,11 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         to eql(name: 'John Fake')
     end
 
+    it 'matches any' do
+      expect(people.select(:name).where { ltree_tags.match_any(['Bottom', 'Bottom.Cities.*']) }.to_a).
+        to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}, {:name=>"John Bros"}])
+    end
+    
     it 'match ltextquery' do
       expect(people.select(:name).where { ltree_tags.match_ltextquery('Countries & Brasil') }.one).
         to eql(:name=>"Jade Doe")
