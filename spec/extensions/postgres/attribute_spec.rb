@@ -205,4 +205,39 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         to eq(emails: %w(jade@hotmail.com foo@bar.com))
     end
   end
+
+  describe 'using ltree types' do
+    before do
+      conn.create_table :pg_people do
+        primary_key :id
+        String :name
+        column :ltree_tags, :ltree
+      end
+
+      conf.commands(:people) do
+        define(:create)
+        define(:update)
+      end
+
+      create_person.(name: 'John Doe', ltree_tags: 'Top.Countries.Europe.Russia')
+      create_person.(name: 'Jade Doe', ltree_tags: 'Bottom.Countries.Australia.Brasil')
+    end
+
+    it 'matches regular expression' do
+      expect(people.select(:name).where { ltree_tags.match('*.Europe.*') }.one).
+        to eql(name: 'John Doe')
+    end
+
+    describe 'concatenation' do
+      it 'concatenates ltrees' do
+        expect(people.select { (ltree_tags + ROM::SQL::Postgres::Values::LabelPath.new('Moscu')).as(:ltree_tags) }.where { name.is('Jade Doe') }.one).
+        to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
+      end
+
+      it 'concatenates strings' do
+        expect(people.select { (ltree_tags + 'Moscu').as(:ltree_tags) }.where { name.is('Jade Doe') }.one).
+        to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
+      end
+    end
+  end
 end
