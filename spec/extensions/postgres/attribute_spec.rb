@@ -219,13 +219,22 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         define(:update)
       end
 
-      create_person.(name: 'John Doe', ltree_tags: 'Top.Countries.Europe.Russia')
+      create_person.(name: 'John Wilkson',ltree_tags: 'Bottom')
+      create_person.(name: 'John Wayne',ltree_tags: 'Bottom.Countries')
+      create_person.(name: 'John Fake',ltree_tags: 'Bottom.Cities')
+      create_person.(name: 'John Bros',ltree_tags: 'Bottom.Cities.Melbourne')
+      create_person.(name: 'John Wick',ltree_tags: 'Bottom.Countries.Australia')
       create_person.(name: 'Jade Doe', ltree_tags: 'Bottom.Countries.Australia.Brasil')
     end
 
     it 'matches regular expression' do
-      expect(people.select(:name).where { ltree_tags.match('*.Europe.*') }.one).
-        to eql(name: 'John Doe')
+      expect(people.select(:name).where { ltree_tags.match('Bottom.Cities') }.one).
+        to eql(name: 'John Fake')
+    end
+
+    it 'match ltextquery' do
+      expect(people.select(:name).where { ltree_tags.match_ltextquery('Countries & Brasil') }.one).
+        to eql(:name=>"Jade Doe")
     end
 
     describe 'concatenation' do
@@ -238,6 +247,16 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         expect(people.select { (ltree_tags + 'Moscu').as(:ltree_tags) }.where { name.is('Jade Doe') }.one).
         to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
       end
+    end
+
+    it 'looks for descendant' do
+      expect(people.select(:name).where { ltree_tags.descendant('Bottom.Countries') }.to_a).
+        to eql([{:name=>"John Wayne"}, {:name=>"John Wick"}, {:name=>"Jade Doe"}])
+    end
+
+    it 'looks for ascendant' do
+      expect(people.select(:name).where { ltree_tags.ascendant('Bottom.Countries.Australia.Brasil') }.to_a).
+        to eql([{:name=>"John Wilkson"}, {:name=>"John Wayne"}, {:name=>"John Wick"}, {:name=>"Jade Doe"}])
     end
   end
 end

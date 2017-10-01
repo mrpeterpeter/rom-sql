@@ -23,9 +23,31 @@ module ROM
           end
         end
 
+        module Helpers
+          ASCENDANT = ["(".freeze, " @> ".freeze, ")".freeze].freeze
+          DESCENDANT = ["(".freeze, " <@ ".freeze, ")".freeze].freeze
+          MATCH_LTEXTQUERY = ["(".freeze, " @ ".freeze, ")".freeze].freeze
+          module_function
+          def custom_sql_expr(string, expr, query)
+            Sequel::SQL::PlaceholderLiteralString.new(string, [expr, query])
+          end
+        end
+
         TypeExtensions.register(LTree) do
           def match(type, expr, query)
             Attribute[SQL::Types::Bool].meta(sql_expr: Sequel::SQL::BooleanExpression.new(:'~', expr, query))
+          end
+
+          def match_ltextquery(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: Helpers.custom_sql_expr(Helpers::MATCH_LTEXTQUERY, expr, query))
+          end
+
+          def descendant(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: Helpers.custom_sql_expr(Helpers::DESCENDANT, expr, query))
+          end
+
+          def ascendant(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: Helpers.custom_sql_expr(Helpers::ASCENDANT, expr, query))
           end
 
           def +(type, expr, other)
