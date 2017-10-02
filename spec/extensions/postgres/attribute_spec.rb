@@ -219,12 +219,16 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         define(:update)
       end
 
-      create_person.(name: 'John Wilkson',ltree_tags: 'Bottom')
-      create_person.(name: 'John Wayne',ltree_tags: 'Bottom.Countries')
-      create_person.(name: 'John Fake',ltree_tags: 'Bottom.Cities')
-      create_person.(name: 'John Bros',ltree_tags: 'Bottom.Cities.Melbourne')
-      create_person.(name: 'John Wick',ltree_tags: 'Bottom.Countries.Australia')
-      create_person.(name: 'Jade Doe', ltree_tags: 'Bottom.Countries.Australia.Brasil')
+      create_person.(name: 'John Wilkson',ltree_tags: ltree('Bottom'))
+      create_person.(name: 'John Wayne',ltree_tags: ltree('Bottom.Countries'))
+      create_person.(name: 'John Fake',ltree_tags: ltree('Bottom.Cities'))
+      create_person.(name: 'John Bros',ltree_tags: ltree('Bottom.Cities.Melbourne'))
+      create_person.(name: 'John Wick',ltree_tags: ltree('Bottom.Countries.Australia'))
+      create_person.(name: 'Jade Doe', ltree_tags: ltree('Bottom.Countries.Australia.Brasil'))
+    end
+
+    def ltree(label_path)
+      ROM::SQL::Postgres::Values::LabelPath.new(label_path)
     end
 
     it 'matches regular expression' do

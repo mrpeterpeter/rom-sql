@@ -15,7 +15,7 @@ module ROM
 
         LTree = SQL::Types.define(Values::LabelPath) do
           input do |label_path|
-            label_path
+            label_path.path
           end
 
           output do |label_path|
