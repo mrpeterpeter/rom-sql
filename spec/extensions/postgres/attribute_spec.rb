@@ -236,7 +236,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
       expect(people.select(:name).where { ltree_tags.match_any(['Bottom', 'Bottom.Cities.*']) }.to_a).
         to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}, {:name=>"John Bros"}])
     end
-    
+
     it 'match ltextquery' do
       expect(people.select(:name).where { ltree_tags.match_ltextquery('Countries & Brasil') }.one).
         to eql(:name=>"Jade Doe")
@@ -259,9 +259,20 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         to eql([{:name=>"John Wayne"}, {:name=>"John Wick"}, {:name=>"Jade Doe"}])
     end
 
+    it 'looks for array contain any descendant of ltree' do
+      expect(people.select(:name).where { ltree_tags.contain_descendant(['Bottom.Cities']) }.to_a).
+      to eql([{:name=>"John Fake"}, {:name=>"John Bros"}])
+    end
+
     it 'looks for ascendant' do
       expect(people.select(:name).where { ltree_tags.ascendant('Bottom.Countries.Australia.Brasil') }.to_a).
         to eql([{:name=>"John Wilkson"}, {:name=>"John Wayne"}, {:name=>"John Wick"}, {:name=>"Jade Doe"}])
     end
+
+    it 'looks for array contain any ascendant of ltree' do
+      expect(people.select(:name).where { ltree_tags.contain_ascendant(['Bottom.Cities']) }.to_a).
+      to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}])
+    end
+
   end
 end
