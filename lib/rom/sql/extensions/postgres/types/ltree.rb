@@ -23,6 +23,20 @@ module ROM
           end
         end
 
+        TypeExtensions.register(ROM::SQL::Types::PG::Array('ltree')) do
+          CONTAIN_ANY_LTEXTQUERY = ["(".freeze, " @ ".freeze, ")".freeze].freeze
+
+          def contain_any_ltextquery(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(CONTAIN_ANY_LTEXTQUERY, expr, query))
+          end
+
+          private
+
+          def custom_sql_expr(string, expr, query)
+            Sequel::SQL::PlaceholderLiteralString.new(string, [expr, query])
+          end
+        end
+
         TypeExtensions.register(LTree) do
           ASCENDANT = ["(".freeze, " @> ".freeze, ")".freeze].freeze
           DESCENDANT = ["(".freeze, " <@ ".freeze, ")".freeze].freeze

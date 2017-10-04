@@ -212,6 +212,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         primary_key :id
         String :name
         column :ltree_tags, :ltree
+        column :parents_tags, 'ltree[]'
       end
 
       conf.commands(:people) do
@@ -219,8 +220,8 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         define(:update)
       end
 
-      create_person.(name: 'John Wilkson',ltree_tags: ltree('Bottom'))
-      create_person.(name: 'John Wayne',ltree_tags: ltree('Bottom.Countries'))
+      create_person.(name: 'John Wilkson',ltree_tags: ltree('Bottom'), parents_tags: [ltree('Top').path, ltree('Top.Building').path])
+      create_person.(name: 'John Wayne',ltree_tags: ltree('Bottom.Countries'), parents_tags: [ltree('Left').path, ltree('Left.Parks').path])
       create_person.(name: 'John Fake',ltree_tags: ltree('Bottom.Cities'))
       create_person.(name: 'John Bros',ltree_tags: ltree('Bottom.Cities.Melbourne'))
       create_person.(name: 'John Wick',ltree_tags: ltree('Bottom.Countries.Australia'))
@@ -276,6 +277,13 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
     it 'looks for array contain any ascendant of ltree' do
       expect(people.select(:name).where { ltree_tags.contain_ascendant(['Bottom.Cities']) }.to_a).
       to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}])
+    end
+
+    describe 'Using with in array ltree[]' do
+      it 'contains any ltextquery' do
+        expect(people.select(:name).where { parents_tags.contain_any_ltextquery('Parks')}.to_a).
+        to eql([{:name=>"John Wayne"}])
+      end
     end
 
   end
