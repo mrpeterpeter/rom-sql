@@ -25,15 +25,51 @@ module ROM
 
         TypeExtensions.register(ROM::SQL::Types::PG::Array('ltree')) do
           CONTAIN_ANY_LTEXTQUERY = ["(".freeze, " @ ".freeze, ")".freeze].freeze
+          ASCENDANT = ["(".freeze, " @> ".freeze, ")".freeze].freeze
+          DESCENDANT = ["(".freeze, " <@ ".freeze, ")".freeze].freeze
+          MATCH_ANY = ["(".freeze, " ? ".freeze, ")".freeze].freeze
 
           def contain_any_ltextquery(type, expr, query)
             Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(CONTAIN_ANY_LTEXTQUERY, expr, query))
+          end
+
+          def contain_ancestor(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(ASCENDANT, expr, query))
+          end
+
+          def contain_descendant(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(DESCENDANT, expr, query))
+          end
+
+          def match(type, expr, query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: Sequel::SQL::BooleanExpression.new(:'~', expr, query))
+          end
+
+          def match_any(type, expr, query)
+            array = build_array_query(query)
+            Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(MATCH_ANY, expr, array))
           end
 
           private
 
           def custom_sql_expr(string, expr, query)
             Sequel::SQL::PlaceholderLiteralString.new(string, [expr, query])
+          end
+
+          def build_array_query(query, array_type = 'lquery')
+            case query
+            when Sequel::Postgres::PGArray
+              if query.array_type == array_type
+                query
+              else
+                query.array_type = array_type
+                query
+              end
+            when Array
+              ROM::SQL::Types::PG::Array(array_type)[query]
+            when String
+              ROM::SQL::Types::PG::Array(array_type)[query.split(',')]
+            end
           end
         end
 

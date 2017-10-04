@@ -222,7 +222,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
 
       create_person.(name: 'John Wilkson',ltree_tags: ltree('Bottom'), parents_tags: [ltree('Top').path, ltree('Top.Building').path])
       create_person.(name: 'John Wayne',ltree_tags: ltree('Bottom.Countries'), parents_tags: [ltree('Left').path, ltree('Left.Parks').path])
-      create_person.(name: 'John Fake',ltree_tags: ltree('Bottom.Cities'))
+      create_person.(name: 'John Fake',ltree_tags: ltree('Bottom.Cities'), parents_tags: [ltree('Top.Building.EmpireState').path, ltree('Top.Building.EmpireState.381').path])
       create_person.(name: 'John Bros',ltree_tags: ltree('Bottom.Cities.Melbourne'))
       create_person.(name: 'John Wick',ltree_tags: ltree('Bottom.Countries.Australia'))
       create_person.(name: 'Jade Doe', ltree_tags: ltree('Bottom.Countries.Australia.Brasil'))
@@ -250,12 +250,12 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
     describe 'concatenation' do
       it 'concatenates ltrees' do
         expect(people.select { (ltree_tags + ROM::SQL::Postgres::Values::LabelPath.new('Moscu')).as(:ltree_tags) }.where { name.is('Jade Doe') }.one).
-        to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
+          to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
       end
 
       it 'concatenates strings' do
         expect(people.select { (ltree_tags + 'Moscu').as(:ltree_tags) }.where { name.is('Jade Doe') }.one).
-        to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
+          to eq(ltree_tags: ROM::SQL::Postgres::Values::LabelPath.new('Bottom.Countries.Australia.Brasil.Moscu'))
       end
     end
 
@@ -266,7 +266,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
 
     it 'looks for array contain any descendant of ltree' do
       expect(people.select(:name).where { ltree_tags.contain_descendant(['Bottom.Cities']) }.to_a).
-      to eql([{:name=>"John Fake"}, {:name=>"John Bros"}])
+        to eql([{:name=>"John Fake"}, {:name=>"John Bros"}])
     end
 
     it 'looks for ascendant' do
@@ -276,13 +276,33 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
 
     it 'looks for array contain any ascendant of ltree' do
       expect(people.select(:name).where { ltree_tags.contain_ascendant(['Bottom.Cities']) }.to_a).
-      to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}])
+        to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}])
     end
 
     describe 'Using with in array ltree[]' do
       it 'contains any ltextquery' do
         expect(people.select(:name).where { parents_tags.contain_any_ltextquery('Parks')}.to_a).
-        to eql([{:name=>"John Wayne"}])
+          to eql([{:name=>"John Wayne"}])
+      end
+
+      it 'contains any ancestor' do
+        expect(people.select(:name).where { parents_tags.contain_ancestor('Top.Building.EmpireState.381')}.to_a).
+          to eql([{:name=>"John Wilkson"}, {:name=>"John Fake"}])
+      end
+
+      it 'contains any descendant' do
+        expect(people.select(:name).where { parents_tags.contain_descendant('Left')}.to_a).
+          to eql([{:name=>"John Wayne"}])
+      end
+
+      it 'contains any match with lquery' do
+        expect(people.select(:name).where { parents_tags.match('T*|Left.*')}.to_a).
+          to eql([{:name=>"John Wilkson"}, {:name=>"John Wayne"}, {:name=>"John Fake"}])
+      end
+
+      it 'contains any match with lquery' do
+        expect(people.select(:name).where { parents_tags.match_any(['Top.*', 'Left.*'])}.to_a).
+          to eql([{:name=>"John Wilkson"}, {:name=>"John Wayne"}, {:name=>"John Fake"}])
       end
     end
 
