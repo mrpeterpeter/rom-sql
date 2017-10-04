@@ -212,7 +212,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
         primary_key :id
         String :name
         column :ltree_tags, :ltree
-        column :parents_tags, 'ltree[]'
+        column :parents_tags, 'ltree[]', default: []
       end
 
       conf.commands(:people) do
@@ -223,7 +223,7 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
       create_person.(name: 'John Wilkson',ltree_tags: ltree('Bottom'), parents_tags: [ltree('Top').path, ltree('Top.Building').path])
       create_person.(name: 'John Wayne',ltree_tags: ltree('Bottom.Countries'), parents_tags: [ltree('Left').path, ltree('Left.Parks').path])
       create_person.(name: 'John Fake',ltree_tags: ltree('Bottom.Cities'), parents_tags: [ltree('Top.Building.EmpireState').path, ltree('Top.Building.EmpireState.381').path])
-      create_person.(name: 'John Bros',ltree_tags: ltree('Bottom.Cities.Melbourne'))
+      create_person.(name: 'John Bros',ltree_tags: ltree('Bottom.Cities.Melbourne'), parents_tags: [ltree('Right.Cars.Ford').path, ltree('Right.Cars.Nissan').path])
       create_person.(name: 'John Wick',ltree_tags: ltree('Bottom.Countries.Australia'))
       create_person.(name: 'Jade Doe', ltree_tags: ltree('Bottom.Countries.Australia.Brasil'))
     end
@@ -303,6 +303,26 @@ RSpec.describe 'ROM::SQL::Attribute', :postgres do
       it 'contains any match with lquery' do
         expect(people.select(:name).where { parents_tags.match_any(['Top.*', 'Left.*'])}.to_a).
           to eql([{:name=>"John Wilkson"}, {:name=>"John Wayne"}, {:name=>"John Fake"}])
+      end
+
+      it 'finds first array entry that is an ancestor of ltree' do
+        expect(people.select { parents_tags.find_ancestor('Top.Building.EmpireState.381').as(:ltree)}.first).
+          to eql(ltree: ROM::SQL::Postgres::Values::LabelPath.new('Top'))
+      end
+
+      it 'finds first array entry that is an descendant of ltree' do
+        expect(people.select { parents_tags.find_descendant('Right.Cars').as(:ltree)}.to_a.find{ |x| x[:ltree].path != "" }).
+          to eql(ltree: ROM::SQL::Postgres::Values::LabelPath.new('Right.Cars.Ford'))
+      end
+
+      it 'finds first array entry that is a match (lquery)' do
+        expect(people.select { parents_tags.match_any_lquery('Right.*').as(:ltree)}.to_a.find{ |x| x[:ltree].path != "" }).
+          to eql(ltree: ROM::SQL::Postgres::Values::LabelPath.new('Right.Cars.Ford'))
+      end
+
+      it 'finds first array entry that is a match (ltextquery)' do
+        expect(people.select { parents_tags.match_any_ltextquery('Building').as(:ltree)}.first).
+          to eql(ltree: ROM::SQL::Postgres::Values::LabelPath.new('Top.Building'))
       end
     end
 

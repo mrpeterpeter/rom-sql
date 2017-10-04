@@ -25,9 +25,13 @@ module ROM
 
         module LTreeMethods
           ASCENDANT = ["(".freeze, " @> ".freeze, ")".freeze].freeze
+          FIND_ASCENDANT = ["(".freeze, " ?@> ".freeze, ")".freeze].freeze
           DESCENDANT = ["(".freeze, " <@ ".freeze, ")".freeze].freeze
+          FIND_DESCENDANT = ["(".freeze, " ?<@ ".freeze, ")".freeze].freeze
           MATCH_ANY = ["(".freeze, " ? ".freeze, ")".freeze].freeze
+          MATCH_ANY_LQUERY = ["(".freeze, " ?~ ".freeze, ")".freeze].freeze
           MATCH_LTEXTQUERY = ["(".freeze, " @ ".freeze, ")".freeze].freeze
+          MATCH_ANY_LTEXTQUERY = ["(".freeze, " ?@ ".freeze, ")".freeze].freeze
 
           def match(type, expr, query)
             Attribute[SQL::Types::Bool].meta(sql_expr: Sequel::SQL::BooleanExpression.new(:'~', expr, query))
@@ -74,6 +78,22 @@ module ROM
 
           def contain_descendant(type, expr, query)
             Attribute[SQL::Types::Bool].meta(sql_expr: custom_sql_expr(LTreeMethods::DESCENDANT, expr, query))
+          end
+
+          def find_ancestor(type, expr, query)
+            Attribute[LTree].meta(sql_expr: custom_sql_expr(LTreeMethods::FIND_ASCENDANT, expr, query))
+          end
+
+          def find_descendant(type, expr, query)
+            Attribute[LTree].meta(sql_expr: custom_sql_expr(LTreeMethods::FIND_DESCENDANT, expr, query))
+          end
+
+          def match_any_lquery(type, expr, query)
+            Attribute[LTree].meta(sql_expr: custom_sql_expr(LTreeMethods::MATCH_ANY_LQUERY, expr, query))
+          end
+
+          def match_any_ltextquery(type, expr, query)
+            Attribute[LTree].meta(sql_expr: custom_sql_expr(LTreeMethods::MATCH_ANY_LTEXTQUERY, expr, query))
           end
         end
 
